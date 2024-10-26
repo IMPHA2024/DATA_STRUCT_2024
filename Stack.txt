@@ -144,19 +144,18 @@ public:
 	}
 	int precede(char a) //a<=b -1 | a>b 1
 	{
-		char b = HEAD->operand;
+		if (isempty()) return 1;
+		char b = HEAD->sign;
 		int la, lb = 0;
-		char arr[5][2] = { {'+','-'},{'*','/'},{'(',')'},{'[',']'},{'{','}'} };
-		for (int i = 0;i < 5;i++)
+		char arr[3][3] = { {'(','[','{'},{'+','-','}'}, {'*','/',']'}};
+		for (int i = 0;i < 3;i++)
 		{
-			for (int j = 0;j < 2;j++)
+			for (int j = 0;j < 3;j++)
 			{
 				if (arr[i][j] == a) la = i;
 				if (arr[i][j] == b) lb = i;
 			}
 		}
-		if (la > 2) la = 2;
-		if (lb > 2) lb = 2;
 		switch (la - lb)
 		{
 		case -1:
@@ -169,6 +168,17 @@ public:
 			return 1;
 			break;
 		}
+	}
+	int size()
+	{
+		node* temp = HEAD;
+		int i = 0;
+		while (temp != nullptr)
+		{
+			temp = temp->next;
+			i++;
+		}
+		return i;
 	}
 	node* HEAD=nullptr;
 };
@@ -228,6 +238,15 @@ new_char* make_RPN(string in ,int len)
 		{
 			RPN[q].fin = s.s[i].fin;
 			RPN[q++].num = s.s[i].num;
+			if (i == len - 1)
+			{
+				while (!cha->isempty())
+				{
+					RPN[q].process = cha->top_sign();
+					RPN[q++].fin = 'p';
+					cha->pop();
+				}
+			}
 		}
 		else if(s.s[i].fin == 'p')
 		{
@@ -241,10 +260,6 @@ new_char* make_RPN(string in ,int len)
 				RPN[q++].fin = 'p';
 				cha->pop();
 				cha->pop();
-			}
-			else if (cha->isempty() || cha->precede(s.s[i].process) == 1)
-			{
-				cha->push(s.s[i].process);
 				if (i == len - 1)
 				{
 					while (!cha->isempty())
@@ -255,11 +270,18 @@ new_char* make_RPN(string in ,int len)
 					}
 				}
 			}
+			else if (cha->isempty() || cha->precede(s.s[i].process) == 1)
+			{
+				cha->push(s.s[i].process);
+			}
 			else if (cha->precede(s.s[i].process) == -1)
 			{
-				RPN[q].process = cha->top_sign();
-				RPN[q++].fin = 'p';
-				cha->pop();
+				while (cha->precede(s.s[i].process) == -1)
+				{
+					RPN[q].process = cha->top_sign();
+					RPN[q++].fin = 'p';
+					cha->pop();
+				}
 				cha->push(s.s[i].process);
 			}
 		}
@@ -279,7 +301,7 @@ double calculate_RPN(new_char* RPN,int len)
 		else if(RPN[i].fin == 'p')
 		{
 			double a = 0, b = 0;
-			switch (RPN[i].fin)
+			switch (RPN[i].process)
 			{
 			case '+':
 				a = dou->top_operand();
@@ -293,7 +315,7 @@ double calculate_RPN(new_char* RPN,int len)
 				dou->pop();
 				b = dou->top_operand();
 				dou->pop();
-				dou->push(a - b);
+				dou->push(b - a);
 				break;
 			case '*':
 				a = dou->top_operand();
@@ -307,12 +329,16 @@ double calculate_RPN(new_char* RPN,int len)
 				dou->pop();
 				b = dou->top_operand();
 				dou->pop();
-				dou->push(a / b);
+				dou->push(b / a);
 				break;
 			default:
 				break;
 			}
 		}
+	}
+	while (!(dou->HEAD->next == nullptr))
+	{
+		dou->pop();
 	}
 	return dou->top_operand();
 };
